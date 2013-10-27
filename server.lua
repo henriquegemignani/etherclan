@@ -26,8 +26,7 @@ module ('etherclan', package.seeall) do
     timeout = nil,
     port = 0,
 
-    inbound_connections = nil,
-    --outbound_connections = nil,
+    connections = nil,
     socket_table = nil,
   }
   server.__index = server
@@ -38,7 +37,7 @@ module ('etherclan', package.seeall) do
       timeout = timeout and timeout * 0.5 or nil,
       port = port or 0,
 
-      inbound_connections = {},
+      connections = {},
       socket_table = {},
     }
     setmetatable(newserver, server)
@@ -61,14 +60,13 @@ module ('etherclan', package.seeall) do
 
   function server:step()
     self:debug_message "Accept"
-
     local inbound_sock = self.sock:accept()
     if inbound_sock then
       self:create_inbound_connection(inbound_sock)
     end
 
-    self:debug_message("Select")
-    local read = socket.select(self.inbound_connections, nil, self.timeout)
+    self:debug_message "Select"
+    local read = socket.select(self.connections, nil, self.timeout)
     for _, sock in ipairs(read) do
       self.socket_table[sock]:continue()
     end
@@ -81,18 +79,28 @@ module ('etherclan', package.seeall) do
   function server:create_inbound_connection(sock)
     self:debug_message "Create Inbound Connection"
     local inbound = inbound_connection.create(sock)
-
-    table.insert(self.inbound_connections, inbound.socket)
-    self.socket_table[inbound.socket] = inbound
-    inbound.server = self
+    self:add_connection(inbound)
   end
 
-  function server:remove_inbound_connection(connection)
-    self:debug_message "Remove Inbound Connection"
+  function server:create_outbound_connection(sock)
+    self:debug_message "Create Outbound Connection"
+    error "NYI"
+    local outbound = nil
+    self:add_connection(outbound)
+  end
+
+  function server:add_connection(connection)
+    table.insert(self.connections, connection.socket)
+    self.socket_table[connection.socket] = connection
+    connection.server = self
+  end
+
+  function server:remove_connection(connection)
+    self:debug_message "Remove Connection"
 
     assert(connection.server == self)
     connection.server = nil
-    tableremove(self.inbound_connections, connection.socket)
+    tableremove(self.connections, connection.socket)
     self.socket_table[inbound.socket] = nil
   end
 
