@@ -1,7 +1,16 @@
 module ('etherclan', package.seeall) do
   local socket = require("socket")
 
-  require 'etherclan.client'
+  require 'etherclan.inbound_connection'
+
+  local function tableremove(t, val)
+    for i, s in ipairs(t) do
+      if s == val then
+        table.remove(t, i)
+        return
+      end
+    end
+  end
 
   server = {
     -- class methods
@@ -10,25 +19,27 @@ module ('etherclan', package.seeall) do
     -- methods
     step = nil,
     start = nil,
-    add_client = nil,
-    remove_client = nil,
 
     -- attributes
+    db = nil,
     sock = nil,
-    clients_socks = nil,
-    connected_clients = nil,
     timeout = nil,
     port = 0,
+
+    inbound_connections = nil,
+    --outbound_connections = nil,
+    socket_table = nil,
   }
   server.__index = server
 
-  function server.create(timeout, port)
+  function server.create(db, timeout, port)
     local newserver = { 
+      db = db,
       timeout = timeout and timeout * 0.5 or nil,
       port = port or 0,
 
-      clients_socks = {},
-      connected_clients = {},
+      inbound_connections = {},
+      socket_table = {},
     }
     setmetatable(newserver, server)
 
@@ -51,15 +62,15 @@ module ('etherclan', package.seeall) do
   function server:step()
     self:debug_message "Accept"
 
-    local client_sock = self.sock:accept()
-    if client_sock then
-      self:add_client(client.create(client_sock))
+    local inbound_sock = self.sock:accept()
+    if inbound_sock then
+      self:create_inbound_connection(inbound_sock)
     end
 
     self:debug_message("Select")
-    local read = socket.select(self.clients_socks, nil, self.timeout)
+    local read = socket.select(self.inbound_connections, nil, self.timeout)
     for _, sock in ipairs(read) do
-      self.connected_clients[sock]:continue()
+      self.socket_table[sock]:continue()
     end
   end
 
@@ -67,26 +78,22 @@ module ('etherclan', package.seeall) do
     self.sock:close()
   end
 
-  function server:add_client(client)
-    self:debug_message "Add Client"
+  function server:create_inbound_connection(sock)
+    self:debug_message "Create Inbound Connection"
+    local inbound = inbound_connection.create(sock)
 
-    table.insert(self.clients_socks, client.socket)
-    self.connected_clients[client.socket] = client
-    client.server = self
+    table.insert(self.inbound_connections, inbound.socket)
+    self.socket_table[inbound.socket] = inbound
+    inbound.server = self
   end
 
-  function server:remove_client(client)
-    self:debug_message "Remove Client"
+  function server:remove_inbound_connection(connection)
+    self:debug_message "Remove Inbound Connection"
 
-    assert(client.server == self)
-    client.server = nil
-    for i, sock in ipairs(self.clients_socks) do
-      if sock == client.socket then
-        table.remove(self.clients_socks, i)
-        break
-      end
-    end
-    self.connected_clients[client.socket] = nil
+    assert(connection.server == self)
+    connection.server = nil
+    tableremove(self.inbound_connections, connection.socket)
+    self.socket_table[inbound.socket] = nil
   end
 
   function server:debug_message(str)
