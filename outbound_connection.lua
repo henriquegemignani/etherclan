@@ -1,5 +1,7 @@
 module ('etherclan', package.seeall) do
 
+  require 'etherclan.base_connection'
+
   outbound_connection = {
     -- class methods
     create = nil,
@@ -13,8 +15,12 @@ module ('etherclan', package.seeall) do
     socket = nil,
     routine = nil,
     server = nil,
+
+    -- static members
+    name = "In-Connection",
   }
   outbound_connection.__index = outbound_connection
+  setmetatable(outbound_connection, base_connection)
 
   function outbound_connection.create(sock)
     local newclient = {
@@ -25,35 +31,6 @@ module ('etherclan', package.seeall) do
     setmetatable(newclient, outbound_connection)
 
     return newclient
-  end
-
-  function outbound_connection:continue()
-    self:debug_message "Continue"
-    assert(coroutine.resume(self.routine, self))
-    if coroutine.status(self.routine) == 'dead' then
-      self:finish()
-    end
-  end
-
-  function outbound_connection:finish()
-    self:debug_message "Finish"
-    self.socket:close()
-    if self.server then
-      self.server:remove_outbound_connection(self)
-    end
-  end
-
-  function outbound_connection:send(msg)
-    self:debug_message("Sending: '" .. msg .. "'")
-    self.socket:send(msg .. '\n')
-  end
-
-  function outbound_connection:receive()
-    return self.socket:receive()
-  end
-
-  function outbound_connection:debug_message(str)
-    print("[Out-Connection @ " .. self.ip .. " -- " .. self.port .. "] " .. str)
   end
 
   -- Utils
@@ -106,7 +83,7 @@ module ('etherclan', package.seeall) do
     self:send("ANNOUNCE_SELF " .. self.server.uuid .. " " .. self.server.port)
     self:send("REQUEST_KNOWN_SERVICES")
     self:send("KEEP_ALIVE OFF")
-
+    coroutine.yield()
     while true do
       local response = self:receive()
       if not response then return end

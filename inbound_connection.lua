@@ -1,5 +1,7 @@
 module ('etherclan', package.seeall) do
 
+  require 'etherclan.base_connection'
+
   inbound_connection = {
     -- class methods
     create = nil,
@@ -13,8 +15,12 @@ module ('etherclan', package.seeall) do
     socket = nil,
     routine = nil,
     server = nil,
+
+    -- static members
+    name = "In-Connection",
   }
   inbound_connection.__index = inbound_connection
+  setmetatable(inbound_connection, base_connection)
 
   function inbound_connection.create(sock)
     local newclient = {
@@ -27,37 +33,9 @@ module ('etherclan', package.seeall) do
     return newclient
   end
 
-  function inbound_connection:continue()
-    self:debug_message "Continue"
-    assert(coroutine.resume(self.routine, self))
-    if coroutine.status(self.routine) == 'dead' then
-      self:finish()
-    end
-  end
-
-  function inbound_connection:finish()
-    self:debug_message "Finish"
-    self.socket:close()
-    if self.server then
-      self.server:remove_connection(self)
-    end
-  end
-
-  function inbound_connection:send(msg)
-    self:debug_message("Sending: '" .. msg .. "'")
-    self.socket:send(msg .. '\n')
-  end
-
-  function inbound_connection:receive()
-    return self.socket:receive()
-  end
-
-  function inbound_connection:debug_message(str)
-    print("[In-Connection @ " .. self.ip .. " -- " .. self.port .. "] " .. str)
-  end
-
   -- Utils
   local function split_first(s)
+    if not s then return nil end
     local head, tail = s:match("^([^ ]+) (.*)$")
     if not head then
       return s
@@ -66,7 +44,6 @@ module ('etherclan', package.seeall) do
   end
 
   local function split(s)
-    if not s then return nil end
     local head, tail = split_first(s)
     if not tail then
       return head
@@ -82,7 +59,7 @@ module ('etherclan', package.seeall) do
     if (cli_ip and cli_uuid and cli_port) then
       self.server.db:add_node{ uuid = cli_uuid, ip = cli_ip, port = cli_port}
     else
-      self:debug_message("invalid input! '" .. arguments .. "': " .. cli_uuid .. " --- " .. cli_port)
+      self:debug_message("invalid input! '" .. arguments .. "'")
     end
   end
 
@@ -99,7 +76,7 @@ module ('etherclan', package.seeall) do
   end
 
   function commands.keep_alive(self, enabled)
-    self.keep_alive = enabled:lower() == "on"
+    self.keep_alive = enabled and (enabled:lower() == "on")
   end
 
   -- Routine logic

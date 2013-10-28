@@ -103,6 +103,7 @@ module ('etherclan', package.seeall) do
     self:debug_message "Create Outbound Connection"
     local outbound = outbound_connection.create(sock)
     self:add_connection(outbound)
+    outbound:continue()
   end
 
   function server:add_connection(connection)
@@ -117,7 +118,7 @@ module ('etherclan', package.seeall) do
     assert(connection.server == self)
     connection.server = nil
     tableremove(self.connections, connection.socket)
-    self.socket_table[inbound.socket] = nil
+    self.socket_table[connection.socket] = nil
   end
 
   function server:debug_message(str)
