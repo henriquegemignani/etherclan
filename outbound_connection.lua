@@ -1,6 +1,6 @@
 module ('etherclan', package.seeall) do
 
-  inbound_connection = {
+  oubound_connection = {
     -- class methods
     create = nil,
 
@@ -14,20 +14,21 @@ module ('etherclan', package.seeall) do
     routine = nil,
     server = nil,
   }
-  inbound_connection.__index = inbound_connection
+  oubound_connection.__index = oubound_connection
 
-  function inbound_connection.create(sock)
+  function outbound_connection.create(sock)
     local newclient = {
       socket = sock,
-      routine = coroutine.create(inbound_connection.routine_logic)
+      routine = coroutine.create(out
+   bound_connection.routine_logic)
     }
     newclient.ip, newclient.port = sock:getpeername()
-    setmetatable(newclient, inbound_connection)
+    setmetatable(newclient, outbound_connection)
 
     return newclient
   end
 
-  function inbound_connection:continue()
+  function outbound_connection:continue()
     self:debug_message "Continue"
     assert(coroutine.resume(self.routine, self))
     if coroutine.status(self.routine) == 'dead' then
@@ -35,25 +36,26 @@ module ('etherclan', package.seeall) do
     end
   end
 
-  function inbound_connection:finish()
+  function outbound_connection:finish()
     self:debug_message "Finish"
     self.socket:close()
     if self.server then
-      self.server:remove_connection(self)
+      self.server:remove_out
+ bound_connection(self)
     end
   end
 
-  function inbound_connection:send(msg)
+  function outbound_connection:send(msg)
     self:debug_message("Sending: '" .. msg .. "'")
     self.socket:send(msg .. '\n')
   end
 
-  function inbound_connection:receive()
+  function outbound_connection:receive()
     return self.socket:receive()
   end
 
-  function inbound_connection:debug_message(str)
-    print("[In-Connection @ " .. self.ip .. " -- " .. self.port .. "] " .. str)
+  function outbound_connection:debug_message(str)
+    print("[Out-Connection @ " .. self.ip .. " -- " .. self.port .. "] " .. str)
   end
 
   -- Utils
@@ -107,7 +109,7 @@ module ('etherclan', package.seeall) do
     return function(self, ...) return invalid_command(self, command, ...) end
   end
 
-  function inbound_connection:routine_logic()
+  function outbound_connection:routine_logic()
     local command_name, arguments = split_first(self:receive())
     command_name = command_name:lower()
 

@@ -21,11 +21,12 @@ module ('etherclan', package.seeall) do
     start = nil,
 
     -- attributes
+    search_period = 100,
+    pending_search_time = 10,
     db = nil,
     sock = nil,
     timeout = nil,
     port = 0,
-
     connections = nil,
     socket_table = nil,
   }
@@ -35,7 +36,8 @@ module ('etherclan', package.seeall) do
     local newserver = { 
       db = db,
       timeout = timeout and timeout * 0.5 or nil,
-      port = port or 0,
+      port = port or 0
+      pending_search_time = server.pending_search_time,
 
       connections = {},
       socket_table = {},
@@ -63,6 +65,11 @@ module ('etherclan', package.seeall) do
     local inbound_sock = self.sock:accept()
     if inbound_sock then
       self:create_inbound_connection(inbound_sock)
+    end
+
+    self.pending_search_time = self.pending_search_time - 1
+    if self.pending_search_time <= 0 then
+      self.pending_search_time = self.search_period
     end
 
     self:debug_message "Select"
