@@ -98,6 +98,10 @@ module ('etherclan', package.seeall) do
     self:send('KNOWN_SERVICES ')
   end
 
+  function commands.keep_alive(self, enabled)
+    self.keep_alive = enabled:lower() == "on"
+  end
+
   -- Routine logic
   local function invalid_command(self, command)
     self:debug_message("Invalid command: '" .. command .. "'")
@@ -108,10 +112,14 @@ module ('etherclan', package.seeall) do
   end
 
   function inbound_connection:routine_logic()
-    local command_name, arguments = split_first(self:receive())
-    command_name = command_name:lower()
+    repeat
+      local command_name, arguments = split_first(self:receive())
+      command_name = command_name:lower()
 
-    local callback = commands[command_name] or make_invalid_command_callback(command_name)
-    callback(self, split(arguments))
+      local callback = commands[command_name] or make_invalid_command_callback(command_name)
+      callback(self, split(arguments))
+
+      coroutine.yield()
+    until not self.keep_alive
   end
 end

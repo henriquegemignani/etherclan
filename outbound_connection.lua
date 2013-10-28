@@ -1,6 +1,6 @@
 module ('etherclan', package.seeall) do
 
-  oubound_connection = {
+  outbound_connection = {
     -- class methods
     create = nil,
 
@@ -14,13 +14,12 @@ module ('etherclan', package.seeall) do
     routine = nil,
     server = nil,
   }
-  oubound_connection.__index = oubound_connection
+  outbound_connection.__index = outbound_connection
 
   function outbound_connection.create(sock)
     local newclient = {
       socket = sock,
-      routine = coroutine.create(out
-   bound_connection.routine_logic)
+      routine = coroutine.create(outbound_connection.routine_logic)
     }
     newclient.ip, newclient.port = sock:getpeername()
     setmetatable(newclient, outbound_connection)
@@ -40,8 +39,7 @@ module ('etherclan', package.seeall) do
     self:debug_message "Finish"
     self.socket:close()
     if self.server then
-      self.server:remove_out
- bound_connection(self)
+      self.server:remove_outbound_connection(self)
     end
   end
 
@@ -78,42 +76,46 @@ module ('etherclan', package.seeall) do
   end
 
   -- Commands
-  local commands = {}
-  function commands.announce_self(self, cli_uuid, cli_port)
-    local cli_ip = self.ip
-    if (cli_ip and cli_uuid and cli_port) then
-      self.server.db:add_node{ uuid = cli_uuid, ip = cli_ip, port = cli_port}
-    else
-      self:debug_message("invalid input! '" .. arguments .. "': " .. cli_uuid .. " --- " .. cli_port)
+  local responses = {}
+  function responses.node_info(self, arguments)
+    local uuid, ip, port = split(arguments)
+    if (uuid and ip and port) then
+      self.server.db:add_node{ uuid = uuid, ip = ip, port = port}
     end
   end
 
-  function commands.request_node_list(self)
-    for uuid, node in pairs(self.server.db.known_nodes) do
-      if node.ip and node.port then
-        self:send("NODE_INFO " .. uuid .. " " .. node.ip .. " " .. node.port)
-      end
+  function responses.known_services(self, arguments)
+    local service, rest = split_first(arguments)
+    while service ~= nil do
+      print("known service: " .. service)
+      service, rest = split_first(rest)
     end
-  end
-
-  function commands.request_known_services(self)
-    self:send('KNOWN_SERVICES ')
   end
 
   -- Routine logic
-  local function invalid_command(self, command)
-    self:debug_message("Invalid command: '" .. command .. "'")
+  local function invalid_response(self, name)
+    self:debug_message("Invalid response: '" .. name .. "'")
   end
 
-  local function make_invalid_command_callback(command)
-    return function(self, ...) return invalid_command(self, command, ...) end
+  local function make_invalid_response_callback(name)
+    return function(self, ...) return invalid_response(self, name, ...) end
   end
 
   function outbound_connection:routine_logic()
-    local command_name, arguments = split_first(self:receive())
-    command_name = command_name:lower()
+    self:send("KEEP_ALIVE ON")
+    self:send("ANNOUNCE_SELF " .. self.server.uuid .. " " .. self.server.port)
+    self:send("REQUEST_KNOWN_SERVICES")
+    self:send("KEEP_ALIVE OFF")
 
-    local callback = commands[command_name] or make_invalid_command_callback(command_name)
-    callback(self, split(arguments))
+    while true do
+      local response = self:receive()
+      if not response then return end
+
+      local response_name, arguments = split_first(response)
+      local callback = responses[response_name] or make_invalid_response_callback(response_name)
+      callback(self, arguments)
+
+      coroutine.yield()
+    end
   end
 end

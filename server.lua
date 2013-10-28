@@ -1,7 +1,10 @@
 module ('etherclan', package.seeall) do
+
   local socket = require("socket")
+  local uuid4  = require("etherclan.uuid4")
 
   require 'etherclan.inbound_connection'
+  require 'etherclan.outbound_connection'
 
   local function tableremove(t, val)
     for i, s in ipairs(t) do
@@ -36,8 +39,9 @@ module ('etherclan', package.seeall) do
     local newserver = { 
       db = db,
       timeout = timeout and timeout * 0.5 or nil,
-      port = port or 0
+      port = port or 0,
       pending_search_time = server.pending_search_time,
+      uuid = uuid4.getUUID(),
 
       connections = {},
       socket_table = {},
@@ -70,6 +74,12 @@ module ('etherclan', package.seeall) do
     self.pending_search_time = self.pending_search_time - 1
     if self.pending_search_time <= 0 then
       self.pending_search_time = self.search_period
+      self:debug_message "Search"
+      for _, node in pairs(self.db.known_nodes) do
+        local s = socket.tcp()
+        s:connect(node.ip, node.port)
+        self:create_outbound_connection(s)
+      end
     end
 
     self:debug_message "Select"
@@ -91,8 +101,7 @@ module ('etherclan', package.seeall) do
 
   function server:create_outbound_connection(sock)
     self:debug_message "Create Outbound Connection"
-    error "NYI"
-    local outbound = nil
+    local outbound = outbound_connection.create(sock)
     self:add_connection(outbound)
   end
 
