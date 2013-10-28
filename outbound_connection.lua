@@ -30,8 +30,8 @@ module ('etherclan', package.seeall) do
       routine = coroutine.create(outbound_connection.routine_logic)
     }
     setmetatable(newclient, outbound_connection)
-    newclient.ip, newclient.port = newclient.socket:getpeername()
     newclient.socket:connect(node.ip, node.port)
+    newclient.ip, newclient.port = newclient.socket:getpeername()
     return newclient
   end
 
