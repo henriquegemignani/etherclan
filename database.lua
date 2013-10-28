@@ -34,11 +34,18 @@ module ('etherclan', package.seeall) do
       node = node_or_uuid
     end
     assert(node.uuid, "add_node must receive at least an uuid")
+    self:debug_message("Add Node: '" .. node.uuid .. "'")
     self.known_nodes[node.uuid] = node
     self.known_nodes[node.uuid].last_time = os.time()
+    node.services = node.services or {}
   end
 
   function database:update_time(uuid)
+    self:debug_message("Update Time: '" .. uuid .. "'")
     self.known_nodes[uuid].last_time = os.time()
+  end
+
+  function database:debug_message(msg)
+    print("[DB] - " .. msg)
   end
 end

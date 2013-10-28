@@ -38,10 +38,16 @@ module ('etherclan', package.seeall) do
   end
 
   function base_connection:receive()
-    return self.socket:receive()
+    local data = self.socket:receive()
+    if data then
+      self:debug_message("Received: '" .. data .. "'")
+    end
+    return data   
   end
 
   function base_connection:debug_message(str)
-    print("[" .. self.name .. " @ " .. self.ip .. " -- " .. self.port .. "] " .. str)
+    local ip = self.ip or "{UNK IP}"
+    local port = self.port or "{UNK PORT}"
+    print("[" .. self.name .. " @ " .. ip .. " -- " .. port .. "] " .. str)
   end
 end

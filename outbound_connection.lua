@@ -1,5 +1,6 @@
 module ('etherclan', package.seeall) do
 
+  require 'socket'
   require 'etherclan.base_connection'
 
   outbound_connection = {
@@ -17,24 +18,26 @@ module ('etherclan', package.seeall) do
     server = nil,
 
     -- static members
-    name = "In-Connection",
+    name = "Out-Connection",
   }
   outbound_connection.__index = outbound_connection
   setmetatable(outbound_connection, base_connection)
 
-  function outbound_connection.create(sock)
+  function outbound_connection.create(node)
     local newclient = {
-      socket = sock,
+      node = node,
+      socket = socket.tcp(),
       routine = coroutine.create(outbound_connection.routine_logic)
     }
-    newclient.ip, newclient.port = sock:getpeername()
     setmetatable(newclient, outbound_connection)
-
+    newclient.ip, newclient.port = newclient.socket:getpeername()
+    newclient.socket:connect(node.ip, node.port)
     return newclient
   end
 
   -- Utils
   local function split_first(s)
+    if not s then return nil end
     local head, tail = s:match("^([^ ]+) (.*)$")
     if not head then
       return s
@@ -43,7 +46,6 @@ module ('etherclan', package.seeall) do
   end
 
   local function split(s)
-    if not s then return nil end
     local head, tail = split_first(s)
     if not tail then
       return head
@@ -64,7 +66,10 @@ module ('etherclan', package.seeall) do
   function responses.known_services(self, arguments)
     local service, rest = split_first(arguments)
     while service ~= nil do
-      print("known service: " .. service)
+      if service ~= '' then
+        self:debug_message("known service: '" .. service .. "'")
+        table.insert(self.node.services, service)
+      end
       service, rest = split_first(rest)
     end
   end
@@ -82,6 +87,7 @@ module ('etherclan', package.seeall) do
     self:send("KEEP_ALIVE ON")
     self:send("ANNOUNCE_SELF " .. self.server.uuid .. " " .. self.server.port)
     self:send("REQUEST_KNOWN_SERVICES")
+    self:send("REQUEST_NODE_LIST")
     self:send("KEEP_ALIVE OFF")
     coroutine.yield()
     while true do
@@ -89,6 +95,7 @@ module ('etherclan', package.seeall) do
       if not response then return end
 
       local response_name, arguments = split_first(response)
+      response_name = response_name:lower()
       local callback = responses[response_name] or make_invalid_response_callback(response_name)
       callback(self, arguments)
 

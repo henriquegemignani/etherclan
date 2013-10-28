@@ -25,7 +25,7 @@ module ('etherclan', package.seeall) do
 
     -- attributes
     search_period = 100,
-    pending_search_time = 10,
+    pending_search_time = 5,
     db = nil,
     sock = nil,
     timeout = nil,
@@ -76,9 +76,7 @@ module ('etherclan', package.seeall) do
       self.pending_search_time = self.search_period
       self:debug_message "Search"
       for _, node in pairs(self.db.known_nodes) do
-        local s = socket.tcp()
-        s:connect(node.ip, node.port)
-        self:create_outbound_connection(s)
+        self:create_outbound_connection(node)
       end
     end
 
@@ -99,9 +97,9 @@ module ('etherclan', package.seeall) do
     self:add_connection(inbound)
   end
 
-  function server:create_outbound_connection(sock)
+  function server:create_outbound_connection(node)
     self:debug_message "Create Outbound Connection"
-    local outbound = outbound_connection.create(sock)
+    local outbound = outbound_connection.create(node)
     self:add_connection(outbound)
     outbound:continue()
   end

@@ -89,14 +89,18 @@ module ('etherclan', package.seeall) do
   end
 
   function inbound_connection:routine_logic()
-    repeat
+    while true do
       local command_name, arguments = split_first(self:receive())
+      if not command_name then return end
       command_name = command_name:lower()
 
       local callback = commands[command_name] or make_invalid_command_callback(command_name)
       callback(self, split(arguments))
 
+      if not self.keep_alive then
+        return
+      end
       coroutine.yield()
-    until not self.keep_alive
+    end
   end
 end
