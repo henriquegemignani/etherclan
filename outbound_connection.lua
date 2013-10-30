@@ -31,7 +31,7 @@ module ('etherclan', package.seeall) do
     }
     setmetatable(newclient, outbound_connection)
     newclient.socket:connect(node.ip, node.port)
-    newclient.ip, newclient.port = newclient.socket:getpeername()
+    newclient.ip, newclient.port = node.ip, node.port
     return newclient
   end
 

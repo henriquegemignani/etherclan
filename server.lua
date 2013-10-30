@@ -38,7 +38,7 @@ module ('etherclan', package.seeall) do
   function server.create(db, timeout, port)
     local newserver = { 
       db = db,
-      timeout = timeout and timeout * 0.5 or nil,
+      timeout = timeout or 1.0,
       port = port or 0,
       pending_search_time = server.pending_search_time,
       uuid = uuid4.getUUID(),
@@ -57,38 +57,55 @@ module ('etherclan', package.seeall) do
       self.sock = socket.tcp()
       assert(self.sock:bind("*", 0))
     end
-    self.sock:settimeout(self.timeout, 't')
-    self.sock:listen(3)
     self.ip, self.port = self.sock:getsockname()
 
+    self.sock:settimeout(self.timeout * 0.25, 't') -- accept timeout
+    self.sock:listen(3)
+
+    -- Debug message at end so we have the ip and port
     self:debug_message("Server Start with timeout " .. self.timeout)
   end
 
   function server:step()
+    self:accept_new_in_connections()
+    self:create_new_out_connections()
+    self:handle_active_connections()
+  end
+
+  function server:close()
+    self.sock:close()
+  end
+
+  function server:accept_new_in_connections()
     self:debug_message "Accept"
+    -- Get a new inbound connection socket
     local inbound_sock = self.sock:accept()
-    if inbound_sock then
+    if inbound_sock then -- nil when timeout happens
       self:create_inbound_connection(inbound_sock)
     end
+  end
 
+  function server:create_new_out_connections()
+    -- Decrease the cooldown
     self.pending_search_time = self.pending_search_time - 1
-    if self.pending_search_time <= 0 then
-      self.pending_search_time = self.search_period
-      self:debug_message "Search"
-      for _, node in pairs(self.db.known_nodes) do
-        self:create_outbound_connection(node)
-      end
-    end
 
+    -- Check if the cooldown is over
+    if self.pending_search_time > 0 then return end
+    self.pending_search_time = self.search_period
+
+    -- Create new connections!
+    self:debug_message "Search"
+    for _, node in pairs(self.db.known_nodes) do
+      self:create_outbound_connection(node)
+    end
+  end
+
+  function server:handle_active_connections()
     self:debug_message "Select"
     local read = socket.select(self.connections, nil, self.timeout)
     for _, sock in ipairs(read) do
       self.socket_table[sock]:continue()
     end
-  end
-
-  function server:close()
-    self.sock:close()
   end
 
   function server:create_inbound_connection(sock)
