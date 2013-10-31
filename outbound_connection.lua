@@ -29,9 +29,13 @@ module ('etherclan', package.seeall) do
       socket = socket.tcp(),
       routine = coroutine.create(outbound_connection.routine_logic)
     }
-    setmetatable(newclient, outbound_connection)
-    newclient.socket:connect(node.ip, node.port)
     newclient.ip, newclient.port = node.ip, node.port
+    setmetatable(newclient, outbound_connection)
+    local ok, err = newclient.socket:connect(node.ip, node.port)
+    if not ok then
+      newclient:debug_message("Error connecting: " .. err)
+      return nil
+    end
     return newclient
   end
 
