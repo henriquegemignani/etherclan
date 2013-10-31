@@ -106,9 +106,12 @@ module ('etherclan', package.seeall) do
   function server:create_outbound_connection(node)
     self:debug_message "Create Outbound Connection"
     local outbound = outbound_connection.create(node)
-    if not outbound then return end
-    self:add_connection(outbound)
-    outbound:continue()
+    if outbound then
+      self:add_connection(outbound)
+      outbound:continue()
+    else
+      node.connection_errors = node.connection_errors + 1
+    end
   end
 
   function server:add_connection(connection)

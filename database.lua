@@ -36,6 +36,7 @@ module ('etherclan', package.seeall) do
     assert(node.uuid, "add_node must receive at least an uuid")
     self:debug_message("Add Node: '" .. node.uuid .. "'")
     self.known_nodes[node.uuid] = node
+    self.known_nodes[node.uuid].connection_errors = 0
     self.known_nodes[node.uuid].last_time = os.time()
     node.services = node.services or {}
   end
