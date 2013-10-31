@@ -24,8 +24,6 @@ module ('etherclan', package.seeall) do
     start = nil,
 
     -- attributes
-    search_period = 100,
-    pending_search_time = 5,
     db = nil,
     sock = nil,
     timeout = nil,
@@ -40,7 +38,6 @@ module ('etherclan', package.seeall) do
       db = db,
       timeout = timeout or 1.0,
       port = port or 0,
-      pending_search_time = server.pending_search_time,
       uuid = uuid4.getUUID(),
 
       connections = {},
@@ -68,7 +65,6 @@ module ('etherclan', package.seeall) do
 
   function server:step()
     self:accept_new_in_connections()
-    self:create_new_out_connections()
     self:handle_active_connections()
   end
 
@@ -77,7 +73,7 @@ module ('etherclan', package.seeall) do
   end
 
   function server:accept_new_in_connections()
-    self:debug_message "Accept"
+    --self:debug_message "Accept"
     -- Get a new inbound connection socket
     local inbound_sock = self.sock:accept()
     if inbound_sock then -- nil when timeout happens
@@ -86,13 +82,6 @@ module ('etherclan', package.seeall) do
   end
 
   function server:create_new_out_connections()
-    -- Decrease the cooldown
-    self.pending_search_time = self.pending_search_time - 1
-
-    -- Check if the cooldown is over
-    if self.pending_search_time > 0 then return end
-    self.pending_search_time = self.search_period
-
     -- Create new connections!
     self:debug_message "Search"
     for _, node in pairs(self.db.known_nodes) do
@@ -101,7 +90,7 @@ module ('etherclan', package.seeall) do
   end
 
   function server:handle_active_connections()
-    self:debug_message "Select"
+    --self:debug_message "Select"
     local read = socket.select(self.connections, nil, self.timeout)
     for _, sock in ipairs(read) do
       self.socket_table[sock]:continue()
