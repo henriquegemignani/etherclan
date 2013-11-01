@@ -22,19 +22,26 @@ module ('etherclan', package.seeall) do
 
   known_nodes = {}
 
-  function database:add_node(node_or_uuid, ip, port)
-    local uuid
-    if type(node_or_uuid) == 'table' then
-      uuid = node_or_uuid.uuid
-      ip = node_or_uuid.ip
-      port = node_or_uuid.port
-    else
-      uuid = node_or_uuid
+  local function new_node()
+    local node = {}
+    function node:services_string()
+      local services = ""
+      for service in pairs(self.services) do
+        services = services .. " " .. service
+      end
+      return services
     end
+    node.__index = node
+
+    local result = { services = {} }
+    setmetatable(result, node)
+    return result
+  end
+
+  function database:add_node(uuid, ip, port, services)
     assert(uuid, "add_node must receive at least an uuid")
 
-    local new_node = self.known_nodes[uuid] or { services = {} }
-
+    local new_node = self.known_nodes[uuid] or new_node()
     self.known_nodes[uuid] = new_node
 
     new_node.uuid = uuid
@@ -42,6 +49,18 @@ module ('etherclan', package.seeall) do
     new_node.port = port
     new_node.connection_errors = 0
     new_node.last_time = os.time()
+
+    -- Check services
+    if services then
+      local rest, service = services
+      while true do
+        service, rest = rest:match("^%s*([^ ]+)(.*)$")
+        if not service then break end
+        new_node.services[service] = new_node.services[service] or true -- don't overwrite any values already there
+      end
+    end
+
+    return new_node
   end
 
   function database:update_time(uuid)

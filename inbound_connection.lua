@@ -43,42 +43,23 @@ module ('etherclan', package.seeall) do
     return head, tail
   end
 
-  local function split(s)
-    local head, tail = split_first(s)
-    if not tail then
-      return head
-    else
-      return head, split(tail)
-    end
-  end
-
   -- Commands
   local commands = {}
   function commands.announce_self(self, arguments)
-    local cli_ip = self.ip
-    local cli_uuid, cli_port = split(arguments)
-    if (cli_ip and cli_uuid and cli_port) then
-      self.server.db:add_node{ uuid = cli_uuid, ip = cli_ip, port = cli_port}
-      self.name = cli_uuid
-    else
-      self:debug_message("invalid input! '" .. arguments .. "'")
+    local uuid, port, services = arguments:match("^([^ ]+) ([^ ]+)(.*)$")
+    local ip = self.ip
+    if (uuid and ip and port) then
+      self.server.db:add_node(uuid, ip, port, services)
+      self.name = uuid
     end
   end
 
   function commands.request_node_list(self)
     for uuid, node in pairs(self.server.db.known_nodes) do
       if node.ip and node.port then
-        self:send("NODE_INFO " .. uuid .. " " .. node.ip .. " " .. node.port)
+        self:send("NODE_INFO " .. uuid .. " " .. node.ip .. " " .. node.port .. node:services_string())
       end
     end
-  end
-
-  function commands.request_known_services(self)
-    local services = ""
-    for service in pairs(self.server.node.services) do
-      services = services .. " " .. service
-    end
-    self:send('KNOWN_SERVICES' .. services)
   end
 
   function commands.keep_alive(self, enabled)
@@ -87,25 +68,16 @@ module ('etherclan', package.seeall) do
 
   function commands.service(self, arguments)
     local service_name, service_arguments = split_first(arguments)
+    print("ASDF '" .. service_name .. "' arfah '" .. service_arguments .. "'")
     self.server.node.services[service_name:lower()](self, service_arguments)
-  end
-
-  -- Routine logic
-  local function invalid_command(self, command)
-    self:debug_message("Invalid command: '" .. command .. "'")
-  end
-
-  local function make_invalid_command_callback(command)
-    return function(self, ...) return invalid_command(self, command, ...) end
   end
 
   function inbound_connection:routine_logic()
     while true do
       local command_name, arguments = split_first(self:receive())
       if not command_name then return end
-      command_name = command_name:lower()
 
-      local callback = commands[command_name] or make_invalid_command_callback(command_name)
+      local callback = commands[command_name:lower()] or (function() end)
       callback(self, arguments)
 
       if not self.keep_alive then

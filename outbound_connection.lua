@@ -39,59 +39,19 @@ module ('etherclan', package.seeall) do
     end
     return newclient
   end
-
-  -- Utils
-  local function split_first(s)
-    if not s then return nil end
-    local head, tail = s:match("^([^ ]+) (.*)$")
-    if not head then
-      return s
-    end
-    return head, tail
-  end
-
-  local function split(s)
-    local head, tail = split_first(s)
-    if not tail then
-      return head
-    else
-      return head, split(tail)
-    end
-  end
-
+  
   -- Commands
   local responses = {}
   function responses.node_info(self, arguments)
-    local uuid, ip, port = split(arguments)
+    local uuid, ip, port, services = arguments:match("^([^ ]+) ([^ ]+) ([^ ]+)(.*)$")
     if (uuid and ip and port) then
-      self.server.db:add_node{ uuid = uuid, ip = ip, port = port}
+      self.server.db:add_node(uuid, ip, port, services)
     end
-  end
-
-  function responses.known_services(self, arguments)
-    local service, rest = split_first(arguments)
-    while service ~= nil do
-      if service ~= '' then
-        self:debug_message("known service: '" .. service .. "'")
-        self.node.services[service] = true
-      end
-      service, rest = split_first(rest)
-    end
-  end
-
-  -- Routine logic
-  local function invalid_response(self, name)
-    self:debug_message("Invalid response: '" .. name .. "'")
-  end
-
-  local function make_invalid_response_callback(name)
-    return function(self, ...) return invalid_response(self, name, ...) end
   end
 
   function outbound_connection:routine_logic()
     self:send("KEEP_ALIVE ON")
-    self:send("ANNOUNCE_SELF " .. self.server.node.uuid .. " " .. self.server.port)
-    self:send("REQUEST_KNOWN_SERVICES")
+    self:send("ANNOUNCE_SELF " .. self.server.node.uuid .. " " .. self.server.port .. self.server.node:services_string())
     self:send("REQUEST_NODE_LIST")
     self:send("KEEP_ALIVE OFF")
     coroutine.yield()
@@ -99,9 +59,8 @@ module ('etherclan', package.seeall) do
       local response = self:receive()
       if not response then return end
 
-      local response_name, arguments = split_first(response)
-      response_name = response_name:lower()
-      local callback = responses[response_name] or make_invalid_response_callback(response_name)
+      local response_name, arguments = response:match("^([^ ]+) (.*)$") -- split first
+      local callback = responses[response_name:lower()] or (function() end)
       callback(self, arguments)
 
       coroutine.yield()

@@ -33,16 +33,12 @@ module ('etherclan', package.seeall) do
   }
   server.__index = server
 
-  function server.create(db, timeout, port, node)
-    node = node or {
-      uuid = uuid4.getUUID(),
-      services = {},
-    }
+  function server.create(db, timeout, port, input_node)
     local newserver = { 
       db = db,
       timeout = timeout or 1.0,
       port = port or 0,
-      node = node,
+      node = db:add_node(input_node and input_node.uuid or uuid4.getUUID()),
 
       connections = {},
       socket_table = {},
