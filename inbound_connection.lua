@@ -54,8 +54,9 @@ module ('etherclan', package.seeall) do
 
   -- Commands
   local commands = {}
-  function commands.announce_self(self, cli_uuid, cli_port)
+  function commands.announce_self(self, arguments)
     local cli_ip = self.ip
+    local cli_uuid, cli_port = split(arguments)
     if (cli_ip and cli_uuid and cli_port) then
       self.server.db:add_node{ uuid = cli_uuid, ip = cli_ip, port = cli_port}
     else
@@ -72,11 +73,20 @@ module ('etherclan', package.seeall) do
   end
 
   function commands.request_known_services(self)
-    self:send('KNOWN_SERVICES ')
+    local services = ""
+    for service in pairs(self.server.node.services) do
+      services = services .. " " .. service
+    end
+    self:send('KNOWN_SERVICES' .. services)
   end
 
   function commands.keep_alive(self, enabled)
     self.keep_alive = enabled and (enabled:lower() == "on")
+  end
+
+  function commands.service(self, arguments)
+    local service_name, service_arguments = split_first(arguments)
+    self.server.node.services[service_name:lower()](self, service_arguments)
   end
 
   -- Routine logic
@@ -95,7 +105,7 @@ module ('etherclan', package.seeall) do
       command_name = command_name:lower()
 
       local callback = commands[command_name] or make_invalid_command_callback(command_name)
-      callback(self, split(arguments))
+      callback(self, arguments)
 
       if not self.keep_alive then
         return

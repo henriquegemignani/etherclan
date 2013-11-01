@@ -72,7 +72,7 @@ module ('etherclan', package.seeall) do
     while service ~= nil do
       if service ~= '' then
         self:debug_message("known service: '" .. service .. "'")
-        table.insert(self.node.services, service)
+        self.node.services[service] = true
       end
       service, rest = split_first(rest)
     end
@@ -89,7 +89,7 @@ module ('etherclan', package.seeall) do
 
   function outbound_connection:routine_logic()
     self:send("KEEP_ALIVE ON")
-    self:send("ANNOUNCE_SELF " .. self.server.uuid .. " " .. self.server.port)
+    self:send("ANNOUNCE_SELF " .. self.server.node.uuid .. " " .. self.server.port)
     self:send("REQUEST_KNOWN_SERVICES")
     self:send("REQUEST_NODE_LIST")
     self:send("KEEP_ALIVE OFF")
