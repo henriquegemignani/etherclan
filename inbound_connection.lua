@@ -17,7 +17,7 @@ module ('etherclan', package.seeall) do
     server = nil,
 
     -- static members
-    name = "In-Connection",
+    type_name = "In-Connection",
   }
   inbound_connection.__index = inbound_connection
   setmetatable(inbound_connection, base_connection)

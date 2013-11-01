@@ -13,11 +13,12 @@ module ('etherclan', package.seeall) do
     socket = nil,
     routine = nil,
     server = nil,
+    type_name = "Base-Connection",
   }
   base_connection.__index = base_connection
 
   function base_connection:continue()
-    self:debug_message "Continue"
+    --self:debug_message "Continue"
     assert(coroutine.resume(self.routine, self))
     if coroutine.status(self.routine) == 'dead' then
       self:finish()
@@ -46,8 +47,7 @@ module ('etherclan', package.seeall) do
   end
 
   function base_connection:debug_message(str)
-    local ip = self.ip or "{UNK IP}"
-    local port = self.port or "{UNK PORT}"
-    print("[" .. self.name .. " @ " .. ip .. " -- " .. port .. "] " .. str)
+    self.name = self.name or ((self.ip or "{UNK IP}") .. (self.port or "{UNK PORT}"))
+    print("[" .. self.type_name .. " @ " .. self.name .. "] " .. str)
   end
 end

@@ -89,7 +89,9 @@ module ('etherclan', package.seeall) do
     -- Create new connections!
     self:debug_message "Search"
     for _, node in pairs(self.db.known_nodes) do
-      self:create_outbound_connection(node)
+      if node.uuid ~= self.node.uuid then
+        self:create_outbound_connection(node)
+      end
     end
   end
 

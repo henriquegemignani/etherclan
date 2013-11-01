@@ -18,7 +18,7 @@ module ('etherclan', package.seeall) do
     server = nil,
 
     -- static members
-    name = "Out-Connection",
+    type_name = "Out-Connection",
   }
   outbound_connection.__index = outbound_connection
   setmetatable(outbound_connection, base_connection)
@@ -30,6 +30,7 @@ module ('etherclan', package.seeall) do
       routine = coroutine.create(outbound_connection.routine_logic)
     }
     newclient.ip, newclient.port = node.ip, node.port
+    newclient.name = node.uuid
     setmetatable(newclient, outbound_connection)
     local ok, err = newclient.socket:connect(node.ip, node.port)
     if not ok then
