@@ -47,7 +47,7 @@ module ('etherclan', package.seeall) do
   end
 
   function base_connection:debug_message(str)
-    self.name = self.name or ((self.ip or "{UNK IP}") .. (self.port or "{UNK PORT}"))
+    self.name = self.name or ((self.ip or "{UNK IP}") .. " -- " .. (self.port or "{UNK PORT}"))
     print("[" .. self.type_name .. " @ " .. self.name .. "] " .. str)
   end
 end

@@ -59,6 +59,7 @@ module ('etherclan', package.seeall) do
     local cli_uuid, cli_port = split(arguments)
     if (cli_ip and cli_uuid and cli_port) then
       self.server.db:add_node{ uuid = cli_uuid, ip = cli_ip, port = cli_port}
+      self.name = cli_uuid
     else
       self:debug_message("invalid input! '" .. arguments .. "'")
     end
