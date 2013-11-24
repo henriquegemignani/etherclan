@@ -143,6 +143,8 @@ module ('etherclan', package.seeall) do
   end
 
   function server:send_message(uuid, command, ...)
+    local result
+
     local target = self.db.known_nodes[uuid]
     if not target then 
       server:debug_message("Sending message to unknown UUID: '" .. uuid .. "'")
@@ -152,8 +154,11 @@ module ('etherclan', package.seeall) do
     local s = socket.tcp()
     if s:connect(target.ip, target.port) then
       if command == commands.service then
-        local service_name, argument = ...
+        local service_name, argument, has_response = ...
         s:send('SERVICE ' .. service_name .. ' ' .. argument .. '\n')
+        if has_response then
+          result = s:receive()
+        end
       else
         error("etherclan.server:send_message -- unknown/unsupported command")
       end
@@ -161,5 +166,7 @@ module ('etherclan', package.seeall) do
     else
       self:debug_message "Connection failure!"
     end
+
+    return result
   end
 end
