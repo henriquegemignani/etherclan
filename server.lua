@@ -152,7 +152,11 @@ module ('etherclan', package.seeall) do
     end
 
     local s = socket.tcp()
+    s:settimeout(0.5)
     if s:connect(target.ip, target.port) then
+      s:settimeout(1)
+      s:send(self.node.uuid)
+
       if command == commands.service then
         local service_name, argument, has_response = ...
         s:send('SERVICE ' .. service_name .. ' ' .. argument .. '\n')

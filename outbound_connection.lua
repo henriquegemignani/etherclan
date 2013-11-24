@@ -50,6 +50,7 @@ module ('etherclan', package.seeall) do
   end
 
   function outbound_connection:routine_logic()
+    self:send(self.server.node.uuid)
     self:send("KEEP_ALIVE ON")
     self:send("ANNOUNCE_SELF " .. self.server.node.uuid .. " " .. self.server.port .. self.server.node:services_string())
     self:send("REQUEST_NODE_LIST")

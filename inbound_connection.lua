@@ -50,7 +50,6 @@ module ('etherclan', package.seeall) do
     local ip = self.ip
     if (uuid and ip and port) then
       self.server.db:add_node(uuid, ip, port, services)
-      self.name = uuid
     end
   end
 
@@ -68,7 +67,6 @@ module ('etherclan', package.seeall) do
 
   function commands.service(self, arguments)
     local service_name, service_arguments = split_first(arguments)
-    print("ASDF '" .. service_name .. "' arfah '" .. service_arguments .. "'")
     local service_handler = self.server.node.services[service_name:lower()]
     if service_handler then
       service_handler(self, service_arguments)
@@ -78,6 +76,8 @@ module ('etherclan', package.seeall) do
   end
 
   function inbound_connection:routine_logic()
+    self.remote_uuid = self:receive()
+    self.name = self.remote_uuid
     while true do
       local command_name, arguments = split_first(self:receive())
       if not command_name then return end
