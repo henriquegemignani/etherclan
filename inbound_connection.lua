@@ -69,7 +69,12 @@ module ('etherclan', package.seeall) do
   function commands.service(self, arguments)
     local service_name, service_arguments = split_first(arguments)
     print("ASDF '" .. service_name .. "' arfah '" .. service_arguments .. "'")
-    self.server.node.services[service_name:lower()](self, service_arguments)
+    local service_handler = self.server.node.services[service_name:lower()]
+    if service_handler then
+      service_handler(self, service_arguments)
+    else
+      self:debug_message("Unknown service requested: '" .. service_name .. "'")
+    end
   end
 
   function inbound_connection:routine_logic()
